@@ -108,6 +108,18 @@ class Process implements Runnable {
     public void run() {
         // TODO #3: Acquire CPU semaphore before executing
         // This ensures only allowed number of processes run simultaneously
+        try {
+            // Task 3: Acquire semaphore before starting execution
+            SharedResources.cpuSemaphore.acquire();
+
+            // ... (بقية كود الدالة كما هو) ...
+
+        } catch (InterruptedException e) {
+            System.out.println(Colors.RED + "  ✗ " + name + " error." + Colors.RESET);
+        } finally {
+            // Task 3: Release semaphore to allow other processes to run
+            SharedResources.cpuSemaphore.release();
+        }
 
         try {
             if (startTime == -1) {
@@ -191,22 +203,29 @@ class Process implements Runnable {
     public void runToCompletion() {
         // TODO: Similar synchronization needed here
         try {
-            System.out.println(Colors.BRIGHT_CYAN + "  ⚡ " + Colors.BOLD + Colors.CYAN + name +
-                    Colors.RESET + Colors.BRIGHT_CYAN + " is the last process, running to completion" +
-                    Colors.RESET + " [" + remainingTime + "ms]");
-            Thread.sleep(remainingTime);
-            remainingTime = 0;
-            completionTime = System.currentTimeMillis();
+            SharedResources.cpuSemaphore.acquire();
+            try {
+                System.out.println(Colors.BRIGHT_CYAN + "  ⚡ " + Colors.BOLD + Colors.CYAN + name +
+                        Colors.RESET + Colors.BRIGHT_CYAN + " is the last process, running to completion" +
+                        Colors.RESET + " [" + remainingTime + "ms]");
+                Thread.sleep(remainingTime);
+                remainingTime = 0;
+                completionTime = System.currentTimeMillis();
 
-            long waitingTime = (completionTime - creationTime) - burstTime;
-            SharedResources.addWaitingTime(waitingTime);
-            SharedResources.incrementCompletedProcess();
+                long waitingTime = (completionTime - creationTime) - burstTime;
+                SharedResources.addWaitingTime(waitingTime);
+                SharedResources.incrementCompletedProcess();
 
-            System.out.println(Colors.BRIGHT_GREEN + "  ✓ " + Colors.BOLD + Colors.CYAN + name +
-                    Colors.RESET + Colors.BRIGHT_GREEN + " finished execution!" + Colors.RESET);
-            System.out.println();
+                System.out.println(Colors.BRIGHT_GREEN + "  ✓ " + Colors.BOLD + Colors.CYAN + name +
+                        Colors.RESET + Colors.BRIGHT_GREEN + " finished execution!" + Colors.RESET);
+                System.out.println();
+            } catch (InterruptedException e) {
+                System.out.println(Colors.RED + "  ✗ " + name + " was interrupted." + Colors.RESET);
+            }
         } catch (InterruptedException e) {
-            System.out.println(Colors.RED + "  ✗ " + name + " was interrupted." + Colors.RESET);
+            System.out.println(Colors.RED + "  ✗ " + name + " error." + Colors.RESET);
+        } finally {
+            SharedResources.cpuSemaphore.release();
         }
     }
 
