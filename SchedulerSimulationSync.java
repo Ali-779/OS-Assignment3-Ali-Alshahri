@@ -35,6 +35,9 @@ class SharedResources {
     // Added ReentrantLock for mutual exclusion
     public static final ReentrantLock lock = new ReentrantLock();
 
+    public static final ReentrantLock logLock = new ReentrantLock();
+    public static final Semaphore cpuSemaphore = new Semaphore(1);
+
     public static int contextSwitchCount = 0; // Shared counter - NEEDS PROTECTION!
     public static int completedProcessCount = 0; // Shared counter - NEEDS PROTECTION!
     public static long totalWaitingTime = 0; // Shared accumulator - NEEDS PROTECTION!
@@ -63,6 +66,7 @@ class SharedResources {
     }
 
     // Method to add waiting time
+
     public static void addWaitingTime(long time) {
         // TODO: Protect this critical section with a lock
         totalWaitingTime += time;
@@ -70,9 +74,12 @@ class SharedResources {
 
     // Method to log execution
     public static void logExecution(String message) {
-        // TODO: Protect this critical section with a lock
-        // RACE CONDITION: ArrayList is not thread-safe!
-        executionLog.add(message);
+        logLock.lock();
+        try {
+            executionLog.add(message);
+        } finally {
+            logLock.unlock();
+        }
     }
 }
 
